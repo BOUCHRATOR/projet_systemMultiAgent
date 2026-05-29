@@ -50,5 +50,16 @@ def recommend_interim_care(state: MedicalState) -> MedicalState:
         "diagnostic_summary": diagnostic_summary,
         "interim_care": interim_care,
         "urgency_level": urgency_level,
+
+        # Patient-questionnaire part is complete
         "is_complete": True,
+
+        # Abdellah part: Human-in-the-Loop doctor review
+        "awaiting_physician_review": True,
+        "physician_validated": False,
+        "physician_treatment": state.get("physician_treatment", ""),
+        "physician_notes": state.get("physician_notes", ""),
+
+        # Supervisor will later route to PhysicianReview
+        "next": "physician_review",
     }

@@ -11,6 +11,12 @@ class MedicalState(TypedDict):
     interim_care: str
     urgency_level: Optional[str]
     is_complete: bool
+    physician_treatment: str
+    physician_notes: str
+    physician_validated: bool
+    awaiting_physician_review: bool
+    final_report: str
+    next: str
 
 
 def initial_state(session_id: str, patient_input: str) -> MedicalState:
@@ -24,4 +30,10 @@ def initial_state(session_id: str, patient_input: str) -> MedicalState:
         "interim_care": "",
         "urgency_level": None,
         "is_complete": False,
+        "physician_treatment": "",
+        "physician_notes": "",
+        "physician_validated": False,
+        "awaiting_physician_review": False,
+        "final_report": "",
+        "next": "diagnostic_agent",
     }

@@ -38,6 +38,32 @@ class AnswerResponse(BaseModel):
     interim_care: str | None
     urgency_level: str | None
     is_complete: bool
+    
+class ReviewRequest(BaseModel):
+    session_id: str
+    physician_treatment: str
+    physician_notes: str = ""
+    validated: bool = True
+
+
+class ReviewResponse(BaseModel):
+    session_id: str
+    awaiting_physician_review: bool
+    physician_validated: bool
+    physician_treatment: str
+    physician_notes: str
+    next: str
+    
+class ResumeRequest(BaseModel):
+    session_id: str
+
+
+class ResumeResponse(BaseModel):
+    session_id: str
+    next: str
+    message: str
+    physician_validated: bool
+    final_report: str | None = None
 
 
 @app.post("/consultation/start", response_model=StartResponse)
@@ -95,6 +121,76 @@ async def answer_question(body: AnswerRequest):
         is_complete=state["is_complete"],
     )
 
+@app.post("/consultation/review", response_model=ReviewResponse)
+async def review_consultation(body: ReviewRequest):
+    state = sessions.get(body.session_id)
+
+    if not state:
+        raise HTTPException(
+            status_code=404,
+            detail="Session introuvable."
+        )
+
+    if not state.get("awaiting_physician_review"):
+        raise HTTPException(
+            status_code=400,
+            detail="Cette consultation n'est pas en attente de validation médecin."
+        )
+
+    state["physician_treatment"] = body.physician_treatment
+    state["physician_notes"] = body.physician_notes
+    state["physician_validated"] = body.validated
+    state["awaiting_physician_review"] = False
+
+    if body.validated:
+        state["next"] = "report_agent"
+    else:
+        state["next"] = "physician_review"
+
+    sessions[body.session_id] = state
+
+    return ReviewResponse(
+        session_id=body.session_id,
+        awaiting_physician_review=state["awaiting_physician_review"],
+        physician_validated=state["physician_validated"],
+        physician_treatment=state["physician_treatment"],
+        physician_notes=state["physician_notes"],
+        next=state["next"],
+    )
+    
+@app.post("/consultation/resume", response_model=ResumeResponse)
+async def resume_consultation(body: ResumeRequest):
+    state = sessions.get(body.session_id)
+
+    if not state:
+        raise HTTPException(
+            status_code=404,
+            detail="Session introuvable."
+        )
+
+    if state.get("awaiting_physician_review"):
+        raise HTTPException(
+            status_code=400,
+            detail="La consultation est encore en attente de validation médecin."
+        )
+
+    if not state.get("physician_validated"):
+        raise HTTPException(
+            status_code=400,
+            detail="La consultation ne peut pas reprendre car elle n'a pas encore été validée par le médecin."
+        )
+
+    # After doctor validation, the next step is the ReportAgent
+    state["next"] = "report_agent"
+    sessions[body.session_id] = state
+
+    return ResumeResponse(
+        session_id=body.session_id,
+        next=state["next"],
+        message="Consultation reprise après validation médecin. Prochaine étape : génération du rapport final.",
+        physician_validated=state["physician_validated"],
+        final_report=state.get("final_report") or None,
+    )
 
 @app.get("/consultation/state/{session_id}")
 async def get_state(session_id: str):
