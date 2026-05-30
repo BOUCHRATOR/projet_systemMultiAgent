@@ -65,7 +65,7 @@ class ResumeResponse(BaseModel):
     next: str
     message: str
     physician_validated: bool
-    final_report: str | None = None
+    final_report: dict | None = None
 
 
 @app.post("/consultation/start", response_model=StartResponse)
@@ -191,7 +191,7 @@ async def resume_consultation(body: ResumeRequest):
         next=state["next"],
         message="Consultation reprise après validation médecin. Prochaine étape : génération du rapport final.",
         physician_validated=state["physician_validated"],
-        final_report=state.get("final_report") or None,
+        final_report=state.get("final_report"), # type: ignore
     )
 
 @app.get("/consultation/state/{session_id}")
