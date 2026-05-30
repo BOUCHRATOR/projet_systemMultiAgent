@@ -33,6 +33,18 @@ if "interim_care" not in st.session_state:
 
 if "urgency_level" not in st.session_state:
     st.session_state.urgency_level = ""
+    
+if "physician_validated" not in st.session_state:
+    st.session_state.physician_validated = False
+
+if "physician_treatment" not in st.session_state:
+    st.session_state.physician_treatment = ""
+
+if "physician_notes" not in st.session_state:
+    st.session_state.physician_notes = ""
+
+if "resume_message" not in st.session_state:
+    st.session_state.resume_message = ""
 
 
 if st.session_state.session_id is None:
@@ -131,6 +143,72 @@ else:
         st.warning(
             "Ce résultat est généré par une IA et ne remplace pas l’avis d’un médecin."
         )
+        
+        st.divider()
+
+        st.subheader("👨‍⚕️ Validation médecin")
+
+        if not st.session_state.physician_validated:
+            physician_treatment = st.text_area(
+                "Conduite à tenir / traitement proposé par le médecin",
+                placeholder="Exemple : Repos, hydratation, surveillance 48h..."
+            )
+
+            physician_notes = st.text_area(
+                "Notes du médecin",
+                placeholder="Exemple : Cas compatible avec syndrome respiratoire simple, à surveiller."
+            )
+
+            if st.button("Valider et reprendre la consultation"):
+                if not physician_treatment.strip():
+                    st.warning("Veuillez saisir la conduite à tenir.")
+                else:
+                    review_response = requests.post(
+                        f"{API_URL}/consultation/review",
+                        json={
+                            "session_id": st.session_state.session_id,
+                            "physician_treatment": physician_treatment,
+                            "physician_notes": physician_notes,
+                            "validated": True
+                        }
+                    )
+
+                    if review_response.status_code == 200:
+                        review_data = review_response.json()
+
+                        st.session_state.physician_validated = review_data["physician_validated"]
+                        st.session_state.physician_treatment = review_data["physician_treatment"]
+                        st.session_state.physician_notes = review_data["physician_notes"]
+
+                        resume_response = requests.post(
+                            f"{API_URL}/consultation/resume",
+                            json={
+                                "session_id": st.session_state.session_id
+                            }
+                        )
+
+                        if resume_response.status_code == 200:
+                            resume_data = resume_response.json()
+                            st.session_state.resume_message = resume_data["message"]
+                            st.success(st.session_state.resume_message)
+                            st.rerun()
+                        else:
+                            st.error("Erreur lors de la reprise de la consultation.")
+                    else:
+                        st.error("Erreur lors de la validation médecin.")
+
+        else:
+            st.success("Validation médecin effectuée.")
+
+            st.subheader("Conduite à tenir validée")
+            st.write(st.session_state.physician_treatment)
+
+            if st.session_state.physician_notes:
+                st.subheader("Notes médecin")
+                st.write(st.session_state.physician_notes)
+
+            if st.session_state.resume_message:
+                st.info(st.session_state.resume_message)
 
         if st.button("Nouvelle consultation"):
             st.session_state.clear()
