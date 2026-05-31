@@ -37,9 +37,8 @@ def build_graph():
 
     # These nodes return control to the workflow ending point for now.
     # The patient question loop is still managed by FastAPI in the existing project.
-    builder.add_edge("diagnostic_agent", END)
-    builder.add_edge("physician_review", END)
-    
+    builder.add_edge("diagnostic_agent", "physician_review")
+    builder.add_edge("physician_review", "report_agent")
     builder.add_edge("report_agent", END)
 
     return builder.compile()

@@ -184,6 +184,12 @@ async def resume_consultation(body: ResumeRequest):
 
     # After doctor validation, the next step is the ReportAgent
     state["next"] = "report_agent"
+
+    # Generate final report if not yet generated
+    if state.get("final_report") is None:
+        from app.nodes.report_agent import report_agent
+        state = report_agent(state)
+
     sessions[body.session_id] = state
 
     return ResumeResponse(
