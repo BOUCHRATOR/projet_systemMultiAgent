@@ -86,4 +86,32 @@ Réponds uniquement en JSON valide :
         "human",
         "Génère le résumé et les recommandations intermédiaires."
     ),
+
+])
+final_report_prompt = ChatPromptTemplate.from_messages([
+    (
+        "system",
+        """Tu es un expert en documentation clinique et en administration médicale.
+Your task is to compile all the findings from the medical workflow into a structured final report.
+
+Tu dois impérativement t'appuyer sur la synthèse de l'IA (Diagnostic Summary), les soins d'attente (Interim Care) ainsi que les instructions et traitements officiels dictés par le médecin traitant.
+
+Règles strictes :
+1. Reste factuel et fidèle aux déclarations du patient et du médecin.
+2. Formule les recommandations finales de manière claire, sous forme de liste d'actions ou de conseils d'hygiène de vie.
+3. Inclus systématiquement la clause de non-responsabilité éthique obligatoire.
+"""
+    ),
+    (
+        "human",
+        """Voici les données de la consultation à compiler :
+- Symptômes initiaux du patient : {patient_input}
+- Synthèse diagnostique de l'IA : {diagnostic_summary}
+- Recommandations initiales d'attente : {interim_care}
+- Directives et prescriptions du médecin traitant : {physician_treatment}
+- Notes cliniques additionnelles du médecin : {physician_notes}
+- Historique complet de la discussion : {conversation_history}
+
+Génère le rapport final structuré."""
+    ),
 ])

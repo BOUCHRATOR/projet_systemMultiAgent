@@ -6,6 +6,8 @@ from app.nodes.supervisor import supervisor, route_next
 from app.nodes.physician_review import physician_review
 
 
+from app.nodes.report_agent import report_agent
+
 def build_graph():
     builder = StateGraph(MedicalState)
 
@@ -13,6 +15,8 @@ def build_graph():
     builder.add_node("supervisor", supervisor)
     builder.add_node("diagnostic_agent", diagnostic_agent)
     builder.add_node("physician_review", physician_review)
+
+    builder.add_node("report_agent", report_agent)
 
     # Entry point
     builder.add_edge(START, "supervisor")
@@ -24,10 +28,8 @@ def build_graph():
         {
             "diagnostic_agent": "diagnostic_agent",
             "physician_review": "physician_review",
-
-            # ReportAgent is not Abdellah's part.
-            # For now, we stop here until the report agent is added.
-            "report_agent": END,
+            #done
+            "report_agent": "report_agent",
 
             "FINISH": END,
         }
@@ -37,6 +39,8 @@ def build_graph():
     # The patient question loop is still managed by FastAPI in the existing project.
     builder.add_edge("diagnostic_agent", END)
     builder.add_edge("physician_review", END)
+    
+    builder.add_edge("report_agent", END)
 
     return builder.compile()
 

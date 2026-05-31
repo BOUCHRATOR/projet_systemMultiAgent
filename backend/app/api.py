@@ -7,6 +7,8 @@ from app.nodes.diagnostic_agent import diagnostic_agent
 from app.tools.patient_tools import ask_patient
 from app.tools.care_tools import recommend_interim_care
 
+from app.nodes.report_agent import report_agent
+
 
 app = FastAPI(
     title="Medical AI",
@@ -63,7 +65,7 @@ class ResumeResponse(BaseModel):
     next: str
     message: str
     physician_validated: bool
-    final_report: str | None = None
+    final_report: dict | None = None
 
 
 @app.post("/consultation/start", response_model=StartResponse)
@@ -189,7 +191,7 @@ async def resume_consultation(body: ResumeRequest):
         next=state["next"],
         message="Consultation reprise après validation médecin. Prochaine étape : génération du rapport final.",
         physician_validated=state["physician_validated"],
-        final_report=state.get("final_report") or None,
+        final_report=state.get("final_report"), # type: ignore
     )
 
 @app.get("/consultation/state/{session_id}")
@@ -203,3 +205,24 @@ async def get_state(session_id: str):
         )
 
     return state
+
+# Route pour récupérer le rapport final ou le générer s'il n'existe pas encore
+@app.get("/consultation/{session_id}/report")
+async def get_consultation_report(session_id: str):
+    state = sessions.get(session_id)
+    if not state:
+        raise HTTPException(status_code=404, detail="Session introuvable.")
+    
+    # Si le rapport n'a pas encore été généré par le workflow, on appelle ton agent
+    if not state.get("final_report"):
+        state = report_agent(state)
+        sessions[session_id] = state  # Sauvegarde dans l'historique mémoire
+        
+    return state["final_report"]
+
+
+# Route Bonus : Historique complet de toutes les consultations enregistrées
+@app.get("/consultation/history")
+async def get_all_history():
+    # Renvoie toutes les sessions actives en mémoire pour ton écran Streamlit Historique
+    return sessions

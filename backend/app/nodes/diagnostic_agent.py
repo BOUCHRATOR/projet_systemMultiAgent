@@ -18,14 +18,27 @@ def diagnostic_agent(state: MedicalState) -> MedicalState:
         "patient_input": state["patient_input"]
     })
 
+    # try:
+    #     parsed = json.loads(response.content)
+    #     first_question = parsed.get(
+    #         "first_question",
+    #         "Pouvez-vous préciser vos symptômes principaux ?"
+    #     )
+    # except json.JSONDecodeError:
+    #     first_question = response.content.strip()
+   
+
     try:
-        parsed = json.loads(response.content)
+        # On force la conversion en string pour rassurer Python et json.loads
+        content_str = str(response.content)
+        parsed = json.loads(content_str)
         first_question = parsed.get(
             "first_question",
             "Pouvez-vous préciser vos symptômes principaux ?"
         )
     except json.JSONDecodeError:
-        first_question = response.content.strip()
+        # Ici aussi, on utilise le content_str nettoyé
+        first_question = str(response.content).strip()
 
     return {
         **state,
